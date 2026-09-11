@@ -24,6 +24,51 @@ function uuid() { return 'id-' + Math.random().toString(36).slice(2) + Date.now(
 const store = { plans: [], plan_history: [], todos: [], do_records: [], retrospectives: [] };
 window.__store = store; // 테스트에서 직접 들여다볼 수 있게 노출
 
+// ── 가짜 인증. 실제 로그인/세션 로직 자체는 이미 라이브 Supabase로 별도 검증했고,
+// 여기서는 "로그인해야 화면이 열리고, 로그아웃하면 닫힌다"는 화면 배선만 확인한다.
+const authUsers = []; // {email, password, id}
+let currentSession = null;
+const authListeners = [];
+function fireAuthChange(event) {
+  for (const cb of authListeners) cb(event, currentSession);
+}
+const authApi = {
+  async signUp({ email, password }) {
+    if (authUsers.find((u) => u.email === email)) {
+      return { data: {}, error: { message: 'User already registered' } };
+    }
+    const user = { id: uuid(), email };
+    authUsers.push({ email, password, id: user.id });
+    currentSession = { user, access_token: 'fake-token-' + user.id };
+    fireAuthChange('SIGNED_IN');
+    return { data: { user, session: currentSession }, error: null };
+  },
+  async signInWithPassword({ email, password }) {
+    const found = authUsers.find((u) => u.email === email && u.password === password);
+    if (!found) return { data: {}, error: { message: 'Invalid login credentials' } };
+    currentSession = { user: { id: found.id, email }, access_token: 'fake-token-' + found.id };
+    fireAuthChange('SIGNED_IN');
+    return { data: { session: currentSession }, error: null };
+  },
+  async signOut() {
+    currentSession = null;
+    fireAuthChange('SIGNED_OUT');
+    return { error: null };
+  },
+  async getSession() {
+    return { data: { session: currentSession } };
+  },
+  async updateUser({ password }) {
+    const found = authUsers.find((u) => u.id === currentSession.user.id);
+    if (found) found.password = password;
+    return { data: {}, error: null };
+  },
+  onAuthStateChange(cb) {
+    authListeners.push(cb);
+    return { data: { subscription: { unsubscribe() {} } } };
+  },
+};
+
 const DEFAULTS = {
   plans: { priority: 'medium', success_criteria: '', expected_minutes: 0, source_retro_id: null, source_insight: null, is_deleted: false },
   todos: { priority: 'medium', tags: [], expected_minutes: 0, status: 'open', is_deleted: false, plan_id: null, due_date: null },
@@ -48,6 +93,7 @@ class QB {
   insert(obj) { this._mode = 'insert'; this._payload = obj; return this; }
   update(obj) { this._mode = 'update'; this._payload = obj; return this; }
   upsert(obj, opts) { this._mode = 'upsert'; this._payload = obj; this._onConflict = opts && opts.onConflict; return this; }
+  delete() { this._mode = 'delete'; return this; }
   _matches(row) { return this._filters.every(([f, v]) => row[f] === v); }
   _exec() {
     const rows = store[this.table];
@@ -59,7 +105,7 @@ class QB {
       return { data: out, error: null };
     }
     if (this._mode === 'insert') {
-      const row = Object.assign({}, DEFAULTS[this.table] || {}, this._payload, {
+      const row = Object.assign({}, DEFAULTS[this.table] || {}, { user_id: currentSession ? currentSession.user.id : null }, this._payload, {
         id: this._payload.id || uuid(),
         created_at: this._payload.created_at || new Date().toISOString(),
         updated_at: this._payload.updated_at || new Date().toISOString(),
@@ -87,6 +133,12 @@ class QB {
       rows.push(row);
       return { data: this._single ? row : [row], error: null };
     }
+    if (this._mode === 'delete') {
+      const remaining = rows.filter((r) => !this._matches(r));
+      const removed = rows.filter((r) => this._matches(r));
+      store[this.table] = remaining;
+      return { data: removed, error: null };
+    }
     return { data: null, error: { message: 'unknown mode' } };
   }
   then(resolve, reject) {
@@ -101,6 +153,7 @@ class QB {
 
 class FakeClient {
   from(table) { return new QB(table); }
+  get auth() { return authApi; }
 }
 
 export function createClient() { return new FakeClient(); }
@@ -113,16 +166,27 @@ export function createClient() { return new FakeClient(); }
   page.on('pageerror', (e) => pageErrors.push(e.message));
   page.on('console', (msg) => { if (msg.type() === 'error') pageErrors.push(msg.text()); });
 
-  await page.route('**/cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm', (route) =>
+  await page.route('**/cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/+esm', (route) =>
     route.fulfill({ contentType: 'application/javascript', body: FAKE_SUPABASE_JS })
   );
 
   await page.goto(BASE + '/index.html');
   await page.waitForTimeout(500);
 
-  // U01: 공개 경고 배너 정확한 문구
-  const bannerText = await page.textContent('#disclosureBanner');
-  log('U01-공개배너', '무로그인 공개 경고 배너 정확한 문구 노출', bannerText.trim() === '지금은 로그인이 없어 링크를 아는 사람은 누구나 볼 수 있습니다. 남이 봐도 괜찮은 내용만 넣으세요.');
+  // U01: 로그인하지 않으면 로그인 화면이 보이고, 자료 화면(appRoot)은 숨겨져 있음
+  const authVisible = await page.isVisible('#authScreen');
+  const appHiddenBefore = await page.isHidden('#appRoot');
+  log('U01-로그인게이트', '로그인 전에는 로그인 화면만 보이고 자료 화면은 숨겨짐', authVisible && appHiddenBefore);
+
+  // U01b: 회원가입 -> 자동 로그인 -> 자료 화면 노출
+  await page.click('.auth-tabs button[data-authtab="signup"]');
+  await page.fill('#signupEmail', 'tester@example.com');
+  await page.fill('#signupPassword', 'testpass123');
+  await page.click('#signupForm button[type="submit"]');
+  await page.waitForTimeout(300);
+  const appVisibleAfterSignup = await page.isVisible('#appRoot');
+  const emailLabel = await page.textContent('#userEmailLabel');
+  log('U01c-회원가입후자동로그인', '가입 즉시 로그인되어 자료 화면이 열리고 이메일이 표시됨', appVisibleAfterSignup && emailLabel.includes('tester@example.com'));
 
   // U02: 초기 로딩 에러 없음
   log('U02-초기로딩', '초기 로딩 시 콘솔/페이지 에러 없음', pageErrors.length === 0, pageErrors.join(' | '));
@@ -269,6 +333,42 @@ export function createClient() { return new FakeClient(); }
   const downloadPath = await download.path();
   const exportedJson = JSON.parse(fs.readFileSync(downloadPath, 'utf8'));
   log('U24-내보내기', '내보내기 JSON에 4개 컬렉션 모두 포함', ['plans', 'todos', 'do_records', 'retrospectives'].every((k) => Array.isArray(exportedJson[k])));
+
+  // U25: 로그아웃하면 다시 로그인 화면으로 돌아감
+  await page.click('#logoutBtn');
+  await page.waitForTimeout(300);
+  const authVisibleAfterLogout = await page.isVisible('#authScreen');
+  const appHiddenAfterLogout = await page.isHidden('#appRoot');
+  log('U25-로그아웃', '로그아웃하면 자료 화면이 숨겨지고 로그인 화면으로 돌아감', authVisibleAfterLogout && appHiddenAfterLogout);
+
+  // U26: 틀린 비밀번호로 로그인 실패 메시지
+  await page.click('.auth-tabs button[data-authtab="login"]');
+  await page.fill('#loginEmail', 'tester@example.com');
+  await page.fill('#loginPassword', 'wrong-password');
+  await page.click('#loginForm button[type="submit"]');
+  await page.waitForTimeout(300);
+  const wrongPwMsg = await page.textContent('#loginStatus');
+  log('U26-로그인실패문구', '틀린 비밀번호 로그인 시 실패 문구 표시', /Invalid login credentials/.test(wrongPwMsg));
+
+  // U27: 없는 계정으로 로그인 시도 -> 같은 문구(T07-C99 취지: 문구를 구분하지 않음)
+  await page.fill('#loginEmail', 'no-such-user@example.com');
+  await page.fill('#loginPassword', 'whatever123');
+  await page.click('#loginForm button[type="submit"]');
+  await page.waitForTimeout(300);
+  const noUserMsg = await page.textContent('#loginStatus');
+  log('U27-계정없음문구동일', '없는 계정 로그인 실패 문구가 비밀번호 오류 문구와 동일', noUserMsg.trim() === wrongPwMsg.trim());
+
+  // U28: 다시 올바르게 로그인 -> 계정 삭제 -> 로그인 화면으로 복귀 + 데이터 삭제
+  await page.fill('#loginEmail', 'tester@example.com');
+  await page.fill('#loginPassword', 'testpass123');
+  await page.click('#loginForm button[type="submit"]');
+  await page.waitForTimeout(300);
+  page.once('dialog', (d) => d.accept());
+  await page.click('#deleteAccountBtn');
+  await page.waitForTimeout(300);
+  const remainingPlans = await page.evaluate(() => window.__store.plans.length);
+  const backToAuth = await page.isVisible('#authScreen');
+  log('U29-계정삭제', '계정 삭제 시 내 자료가 전부 지워지고 로그인 화면으로 돌아감', remainingPlans === 0 && backToAuth);
 
   await page.screenshot({ path: path.join(OUT, 'final.png'), fullPage: true });
   await browser.close();
