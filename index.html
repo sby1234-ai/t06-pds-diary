@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>플랜두씨 다이어리 1</title>
+<style>
+  :root {
+    --paper: #faf7f2;
+    --ink: #2b2620;
+    --ink-dim: #6b6358;
+    --line: #ddd4c6;
+    --accent: #b5652f;
+    --accent-2: #3f6e5c;
+    --warn-bg: #fdf1e0;
+    --warn-line: #e7c48f;
+    --bad: #b3413a;
+    --bad-bg: #f8e6e4;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 16px 48px;
+    background: var(--paper); color: var(--ink);
+    font-family: -apple-system, "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", sans-serif;
+    line-height: 1.5;
+  }
+  .disclosure {
+    max-width: 880px; margin: 16px auto 0; padding: 12px 16px;
+    background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 8px;
+    font-size: 14px;
+  }
+  header { max-width: 880px; margin: 0 auto; padding-top: 20px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--ink-dim); font-size: 13px; margin: 0; }
+  .tabs {
+    max-width: 880px; margin: 16px auto 0; display: flex; gap: 4px;
+    border-bottom: 2px solid var(--line); flex-wrap: wrap;
+  }
+  .tabs button {
+    padding: 10px 16px; border: none; background: none; cursor: pointer;
+    font-size: 14px; color: var(--ink-dim); border-bottom: 2px solid transparent; margin-bottom: -2px;
+  }
+  .tabs button.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+  main { max-width: 880px; margin: 0 auto; padding-top: 20px; }
+  section[hidden] { display: none; }
+  .card {
+    background: #fff; border: 1px solid var(--line); border-radius: 10px;
+    padding: 16px; margin-bottom: 14px;
+  }
+  .card h3 { margin: 0 0 10px; font-size: 15px; }
+  form.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  form.grid .full { grid-column: 1 / -1; }
+  label { display: block; font-size: 12px; color: var(--ink-dim); margin-bottom: 3px; }
+  input, select, textarea {
+    width: 100%; padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px;
+    font-size: 14px; font-family: inherit; background: #fff; color: var(--ink);
+  }
+  textarea { resize: vertical; min-height: 44px; }
+  button.primary {
+    background: var(--accent); color: #fff; border: none; padding: 8px 16px;
+    border-radius: 6px; cursor: pointer; font-size: 14px;
+  }
+  button.ghost {
+    background: none; border: 1px solid var(--line); padding: 6px 12px;
+    border-radius: 6px; cursor: pointer; font-size: 13px; color: var(--ink);
+  }
+  button.danger { color: var(--bad); border-color: var(--bad-bg); }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .list-item {
+    border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px;
+  }
+  .list-item .title { font-weight: 600; }
+  .list-item .meta { font-size: 12px; color: var(--ink-dim); margin-top: 3px; }
+  .badge {
+    display: inline-block; font-size: 11px; padding: 2px 7px; border-radius: 999px;
+    background: #eee; color: var(--ink-dim); margin-right: 4px;
+  }
+  .badge.high { background: var(--bad-bg); color: var(--bad); }
+  .badge.overdue { background: var(--bad-bg); color: var(--bad); }
+  .badge.done { background: #e3efe9; color: var(--accent-2); }
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .filters > * { flex: 1 1 120px; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+  .stat-box { border: 1px solid var(--line); border-radius: 8px; padding: 10px; text-align: center; cursor: pointer; }
+  .stat-box:hover { border-color: var(--accent); }
+  .stat-num { font-size: 22px; font-weight: 700; }
+  .stat-label { font-size: 12px; color: var(--ink-dim); }
+  .drilldown { margin-top: 12px; border-top: 1px dashed var(--line); padding-top: 10px; }
+  .empty { color: var(--ink-dim); font-size: 13px; padding: 10px 0; }
+  .status-line { font-size: 12px; color: var(--ink-dim); margin-top: 6px; }
+  .status-line.error { color: var(--bad); }
+</style>
+</head>
+<body>
+
+<div class="disclosure" id="disclosureBanner">
+  지금은 로그인이 없어 링크를 아는 사람은 누구나 볼 수 있습니다. 남이 봐도 괜찮은 내용만 넣으세요.
+</div>
+
+<header>
+  <h1>플랜두씨 다이어리 1</h1>
+  <p class="sub">내 계획(Plan)과 실제(Do)를 담고, 회고(See)로 다음 계획을 잇는 다이어리</p>
+</header>
+
+<nav class="tabs">
+  <button data-tab="plan" class="active">계획</button>
+  <button data-tab="todo">할 일</button>
+  <button data-tab="do">실행</button>
+  <button data-tab="see">회고</button>
+  <button data-tab="export">내보내기</button>
+</nav>
+
+<main>
+
+  <!-- ============ 계획 (Plan) ============ -->
+  <section id="tab-plan">
+    <div class="card">
+      <h3 id="planFormTitle">새 계획 만들기</h3>
+      <form class="grid" id="planForm">
+        <input type="hidden" id="planId" />
+        <div class="full">
+          <label for="planTitle">제목</label>
+          <input id="planTitle" required maxlength="200" />
+        </div>
+        <div>
+          <label for="planStart">시작일</label>
+          <input id="planStart" type="date" required />
+        </div>
+        <div>
+          <label for="planEnd">종료일</label>
+          <input id="planEnd" type="date" required />
+        </div>
+        <div>
+          <label for="planPriority">우선순위</label>
+          <select id="planPriority">
+            <option value="high">높음</option>
+            <option value="medium" selected>보통</option>
+            <option value="low">낮음</option>
+          </select>
+        </div>
+        <div>
+          <label for="planExpected">예상 소요 시간(분)</label>
+          <input id="planExpected" type="number" min="0" value="0" />
+        </div>
+        <div class="full">
+          <label for="planCriteria">성공 기준</label>
+          <textarea id="planCriteria" required placeholder="이 계획이 성공했다고 볼 수 있는 기준을 적어주세요"></textarea>
+        </div>
+        <div class="full" id="planRetroLinkWrap">
+          <label for="planRetroLink">이어받을 회고 (선택 — 이전 회고의 통찰을 이번 계획에 연결)</label>
+          <select id="planRetroLink"><option value="">(연결 안 함)</option></select>
+        </div>
+        <div class="full row">
+          <button type="submit" class="primary" id="planSubmitBtn">계획 만들기</button>
+          <button type="button" class="ghost" id="planCancelEditBtn" hidden>수정 취소</button>
+        </div>
+      </form>
+      <p class="status-line" id="planFormStatus"></p>
+    </div>
+
+    <div id="planList"></div>
+  </section>
+
+  <!-- ============ 할 일 (Todo) ============ -->
+  <section id="tab-todo" hidden>
+    <div class="card">
+      <h3 id="todoFormTitle">새 할 일 추가</h3>
+      <form class="grid" id="todoForm">
+        <input type="hidden" id="todoId" />
+        <div class="full">
+          <label for="todoTitle">제목</label>
+          <input id="todoTitle" required maxlength="200" />
+        </div>
+        <div>
+          <label for="todoPlan">연결할 계획 (선택)</label>
+          <select id="todoPlan"><option value="">(연결 안 함)</option></select>
+        </div>
+        <div>
+          <label for="todoDue">마감일</label>
+          <input id="todoDue" type="date" />
+        </div>
+        <div>
+          <label for="todoPriority">우선순위</label>
+          <select id="todoPriority">
+            <option value="high">높음</option>
+            <option value="medium" selected>보통</option>
+            <option value="low">낮음</option>
+          </select>
+        </div>
+        <div>
+          <label for="todoExpected">예상 소요 시간(분)</label>
+          <input id="todoExpected" type="number" min="0" value="0" />
+        </div>
+        <div class="full">
+          <label for="todoTags">태그 (쉼표로 구분)</label>
+          <input id="todoTags" placeholder="예: 업무, 급함" />
+        </div>
+        <div class="full row">
+          <button type="submit" class="primary" id="todoSubmitBtn">할 일 추가</button>
+          <button type="button" class="ghost" id="todoCancelEditBtn" hidden>수정 취소</button>
+        </div>
+      </form>
+      <p class="status-line" id="todoFormStatus"></p>
+    </div>
+
+    <div class="card">
+      <div class="filters">
+        <input id="todoSearch" placeholder="제목 검색" />
+        <select id="todoFilterPriority">
+          <option value="">우선순위 전체</option>
+          <option value="high">높음</option>
+          <option value="medium">보통</option>
+          <option value="low">낮음</option>
+        </select>
+        <select id="todoFilterStatus">
+          <option value="">상태 전체</option>
+          <option value="open">진행중</option>
+          <option value="done">완료</option>
+        </select>
+        <select id="todoSortBy">
+          <option value="created_at">만든 순</option>
+          <option value="due_date">마감일 순</option>
+          <option value="priority">우선순위 순</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="todoList"></div>
+  </section>
+
+  <!-- ============ 실행 (Do) ============ -->
+  <section id="tab-do" hidden>
+    <p class="sub">진행중인 할 일에서 시작/완료/막힘을 기록합니다. 같은 실행을 두 번 눌러도 중복 집계되지 않습니다.</p>
+    <div id="doList"></div>
+  </section>
+
+  <!-- ============ 회고 (See) ============ -->
+  <section id="tab-see" hidden>
+    <div class="card">
+      <h3>회고 기간</h3>
+      <div class="row">
+        <div>
+          <label for="seeStart">시작일</label>
+          <input id="seeStart" type="date" />
+        </div>
+        <div>
+          <label for="seeEnd">종료일</label>
+          <input id="seeEnd" type="date" />
+        </div>
+        <button class="ghost" id="seeRefreshBtn" style="align-self:flex-end;">다시 계산</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>이번 기간 집계 (숫자를 클릭하면 근거 기록이 보입니다)</h3>
+      <div class="stat-grid" id="seeStatGrid"></div>
+      <div class="drilldown" id="seeDrilldown" hidden></div>
+    </div>
+
+    <div class="card">
+      <h3>이번 회고의 통찰 남기기</h3>
+      <form id="retroForm">
+        <label for="retroInsight">다음 계획으로 이어갈 한 줄 통찰</label>
+        <textarea id="retroInsight" required placeholder="예: 오전에 예상보다 집중이 잘 되니, 어려운 일을 오전으로 옮기자"></textarea>
+        <div class="row" style="margin-top:8px;">
+          <button type="submit" class="primary">회고 저장</button>
+        </div>
+      </form>
+      <p class="status-line" id="retroFormStatus"></p>
+    </div>
+
+    <div class="card">
+      <h3>지난 회고 목록</h3>
+      <div id="retroList"></div>
+    </div>
+  </section>
+
+  <!-- ============ 내보내기 (Export) ============ -->
+  <section id="tab-export" hidden>
+    <div class="card">
+      <h3>전체 데이터 내보내기</h3>
+      <p class="sub">계획/할 일/실행 기록/회고 전체를 JSON 파일 하나로 내려받습니다.</p>
+      <button class="primary" id="exportBtn">JSON으로 내보내기</button>
+      <p class="status-line" id="exportStatus"></p>
+    </div>
+  </section>
+
+</main>
+
+<script type="module" src="./scripts/app.mjs"></script>
+</body>
+</html>
