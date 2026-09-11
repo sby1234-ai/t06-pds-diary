@@ -2,7 +2,6 @@
 # 과제 6 — 플랜두씨 다이어리 1 — 제출 체크리스트
 
 **결과물(무로그인 공개)**: https://sby1234-ai.github.io/t06-pds-diary/
-**소스 저장소**: https://github.com/sby1234-ai/t06-pds-diary
 **백엔드**: Supabase (Postgres + REST API, anon/publishable 키만 사용, RLS로 공개 CRUD 허용)
 **스키마 계약**: `contracts/pds-schema-v2.json`
 
