@@ -4,8 +4,8 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/+esm";
 import { makeIdempotencyKey, diffMinutes } from "./lib.mjs";
 
-export const SUPABASE_URL = "https://kkdpprxsfhqhndwnibqp.supabase.co";
-export const SUPABASE_PUBLIC_KEY = "sb_publishable_vrQWE1DygvBCMFyTsRM_zw_ivVIwtYN";
+export const SUPABASE_URL = "https://yrqnaccncelcwrpjcpeu.supabase.co";
+export const SUPABASE_PUBLIC_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlycW5hY2NuY2VsY3dycGpjcGV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1MjI3MjgsImV4cCI6MjEwNTA5ODcyOH0.xjt6ONrmhnCMb2URbyjP6OiBqX_ZFX9HuGe_SBtpMk0";
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLIC_KEY);
 
